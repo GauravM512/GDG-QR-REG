@@ -101,8 +101,10 @@ main { padding: 1.5rem; display:flex; justify-content:center; }
 .modal-content {
   background:#f8fafc;
   color:#0f172a;
-  width:100%;
+  /* Centered box: shrink instead of stretching full width */
+  width:clamp(320px, 90vw, 460px);
   max-width:460px;
+  margin:0 auto; /* horizontal centering safeguard */
   border-radius:18px;
   padding:1.25rem 1.25rem 1.5rem;
   box-shadow:0 10px 40px -10px rgba(0,0,0,.55);
