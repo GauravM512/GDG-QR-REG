@@ -1,0 +1,77 @@
+# Ignore all CSV files
+*.csv
+
+# Ignore data directory
+data/
+
+# Ignore db directory
+db/
+
+# Common OS / editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Node / JS
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.parcel-cache/
+.next/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Dependencies / packages
+*.tgz
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# IDE / project settings
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# Misc
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Sass / cache
+.sass-cache/
+
+# Coverage
+coverage-final.json
+
+# Local databases
+*.sqlite
+*.sqlite3
