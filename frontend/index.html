@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GDG On Campus MIT ACSC Check-In</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <!-- Use @zxing/library UMD build for global ZXing -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>GDG On Campus MIT ACSC Check-In</h1>
+    <div id="stats"></div>
+    <button id="exportBtn" type="button" class="secondary" style="margin-left:1rem;">Export CSV</button>
+  </header>
+
+  <main>
+    <section class="scanner-panel">
+      <div id="video-container">
+        <video id="preview" autoplay muted playsinline></video>
+        <div id="scan-overlay">Align QR within frame</div>
+      </div>
+      <div class="controls">
+        <select id="cameraSelect"></select>
+        <button id="startBtn">Start</button>
+        <button id="stopBtn" disabled>Stop</button>
+      </div>
+      <p class="hint">Point camera at QR. Scan result shows automatically.</p>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Attendee Check In</h2>
+      <div id="attendeeCard" class="card">
+        <div id="attendeeInfo"></div>
+        <div id="statusBox" class="status-box"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="closeModalBtn" class="secondary">Close</button>
+        <button id="manualCheckBtn" disabled>Check In</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <small>&copy; GDG On Campus MIT ACSC - Browser Check-In</small>
+  </footer>
+  
+</body>
+</html>
