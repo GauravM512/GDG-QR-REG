@@ -96,3 +96,14 @@ def export_attendance_rows(att_conn):
         ORDER BY scan_time_utc
     """)
     return cur.fetchall()
+
+def recent_attendance_rows(att_conn, limit: int = 25):
+    safe_limit = max(1, min(int(limit or 25), 500))
+    cur = att_conn.cursor()
+    cur.execute("""
+        SELECT ticket_number, attendee_name, scan_time_utc
+        FROM attendance_log
+        ORDER BY datetime(scan_time_utc) DESC
+        LIMIT ?
+    """, (safe_limit,))
+    return cur.fetchall()

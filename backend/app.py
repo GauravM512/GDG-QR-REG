@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 import csv
 import io
 import traceback
@@ -12,10 +14,16 @@ from .db import (
     lookup_attendee,
     mark_attendance,
     attendance_stats,
-    export_attendance_rows
+    export_attendance_rows,
+    recent_attendance_rows
 )
 
 app = FastAPI(title="GDG On Campus MIT ACSC Attendance API", version="1.0.0")
+
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+ASSETS_DIR = FRONTEND_DIR / "assets"
+if ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 # Explicit CORS origins for dev (avoid wildcard issues on some setups / proxies)
 DEV_ORIGINS = [
@@ -35,6 +43,13 @@ app.add_middleware(
 )
 
 att_conn = get_att_conn()
+
+@app.get("/", include_in_schema=False)
+def serve_frontend():
+    index_path = FRONTEND_DIR / "index.html"
+    if not index_path.exists():
+        raise HTTPException(status_code=404, detail="Frontend not built (missing index.html)")
+    return FileResponse(index_path)
 
 class ScanRequest(BaseModel):
     raw_qr: str
@@ -103,3 +118,15 @@ def export_attendance():
     return StreamingResponse(buffer, media_type="text/csv", headers={
         "Content-Disposition": "attachment; filename=attendance_export.csv"
     })
+
+@app.get("/api/attendance/recent")
+def recent_attendance(limit: int = 25):
+    rows = recent_attendance_rows(att_conn, limit)
+    return [
+        {
+            "ticket_number": r[0],
+            "attendee_name": r[1],
+            "scan_time_utc": r[2],
+        }
+        for r in rows
+    ]
