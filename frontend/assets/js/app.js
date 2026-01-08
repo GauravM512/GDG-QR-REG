@@ -11,9 +11,17 @@ const statusBox = document.getElementById('statusBox');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const manualCheckBtn = document.getElementById('manualCheckBtn');
 const exportBtn = document.getElementById('exportBtn'); // Added
+const barcodeInput = document.getElementById('barcodeInput');
+const barcodeSubmitBtn = document.getElementById('barcodeSubmitBtn');
+const modeCameraBtn = document.getElementById('modeCameraBtn');
+const modeBarcodeBtn = document.getElementById('modeBarcodeBtn');
+const cameraModePanel = document.getElementById('cameraModePanel');
+const barcodeModePanel = document.getElementById('barcodeModePanel');
+const attendanceListEl = document.getElementById('attendanceList');
+const historyRefreshBtn = document.getElementById('historyRefreshBtn');
 
 // Add configurable backend base URL (adjust host/port as needed)
-const API_BASE = 'http://localhost:8000'; // Change if backend is on different host/port
+const API_BASE = ''; // Same-origin once served by FastAPI
 function apiFetch(path, opts) { return fetch(`${API_BASE}${path}`, opts); }
 
 // Camera error helper UI (injects a small red message above video)
@@ -59,6 +67,21 @@ let lastStatus = null;
 // Added: timestamp for last result and configurable interval to allow re-scan of same QR
 let lastResultTime = 0;
 const RESCAN_SAME_INTERVAL_MS = 3000; // adjust (ms) before allowing same code again
+const BARCODE_TRIGGER_LENGTH = 14; // number of characters before auto-processing barcode
+let barcodeTriggerTimer = null;
+let activeMode = 'camera';
+const RECENT_ATTENDEE_LIMIT = 25;
+
+function focusBarcodeField(selectText = false) {
+  if (!barcodeInput || activeMode !== 'barcode') return;
+  if (document.activeElement === barcodeInput && !selectText) return;
+  requestAnimationFrame(() => {
+    barcodeInput.focus();
+    if (selectText) {
+      try { barcodeInput.select(); } catch (_) { /* ignore */ }
+    }
+  });
+}
 
 // Poll stats occasionally
 async function loadStats() {
@@ -69,8 +92,60 @@ async function loadStats() {
     statsBox.textContent = `Present: ${data.present_count}`;
   } catch (e) { /* ignore */ }
 }
-setInterval(loadStats, 8000);
-loadStats();
+
+async function loadRecentAttendance(limit = RECENT_ATTENDEE_LIMIT) {
+  if (!attendanceListEl) return;
+  try {
+    const res = await apiFetch(`/api/attendance/recent?limit=${encodeURIComponent(limit)}`);
+    if (!res.ok) throw new Error('recent_attendance_failed');
+    const rows = await res.json();
+    renderRecentAttendance(rows || []);
+  } catch (e) {
+    console.error('Recent attendance load failed', e);
+    attendanceListEl.classList.add('empty');
+    attendanceListEl.innerHTML = '<p>Unable to load check-ins.</p>';
+  }
+}
+
+function renderRecentAttendance(rows) {
+  if (!attendanceListEl) return;
+  if (!rows.length) {
+    attendanceListEl.classList.add('empty');
+    attendanceListEl.innerHTML = '<p>No attendees checked in yet.</p>';
+    return;
+  }
+  attendanceListEl.classList.remove('empty');
+  const html = rows.map(r => {
+    const name = r.attendee_name || 'Unknown attendee';
+    const ticket = r.ticket_number || 'Unknown ticket';
+    const ts = formatLocalTime(r.scan_time_utc);
+    return `
+      <div class="history-item">
+        <strong>${escapeHtml(name)}</strong>
+        <div class="history-meta">
+          <span>${escapeHtml(ticket)}</span>
+          <span>${escapeHtml(ts)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  attendanceListEl.innerHTML = html;
+}
+
+function formatLocalTime(value) {
+  if (!value) return 'Unknown time';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return value;
+  return dt.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const DASHBOARD_REFRESH_MS = 8000;
+function refreshDashboardData() {
+  loadStats();
+  loadRecentAttendance();
+}
+setInterval(refreshDashboardData, DASHBOARD_REFRESH_MS);
+refreshDashboardData();
 
 async function listCameras() {
   try { await ensureZXingLoaded(); } catch (e) { console.error(e); return; }
@@ -170,6 +245,44 @@ function stopScan() {
   }
 }
 
+function setScanMode(mode) {
+  if (!mode || (mode !== 'camera' && mode !== 'barcode')) return;
+  const newMode = mode;
+  const modeChanged = newMode !== activeMode;
+  activeMode = newMode;
+  const useCamera = activeMode === 'camera';
+  const showBarcode = activeMode === 'barcode';
+
+  if (cameraModePanel) {
+    cameraModePanel.classList.toggle('hidden', !useCamera);
+    cameraModePanel.style.display = useCamera ? '' : 'none';
+  }
+  if (barcodeModePanel) {
+    barcodeModePanel.classList.toggle('hidden', !showBarcode);
+    barcodeModePanel.style.display = showBarcode ? '' : 'none';
+  }
+  if (modeCameraBtn) {
+    modeCameraBtn.classList.toggle('active', useCamera);
+    modeCameraBtn.setAttribute('aria-pressed', useCamera);
+  }
+  if (modeBarcodeBtn) {
+    modeBarcodeBtn.classList.toggle('active', showBarcode);
+    modeBarcodeBtn.setAttribute('aria-pressed', showBarcode);
+  }
+
+  if (barcodeTriggerTimer) {
+    clearTimeout(barcodeTriggerTimer);
+    barcodeTriggerTimer = null;
+  }
+
+  if (showBarcode) {
+    stopScan();
+    focusBarcodeField(true);
+  } else if (modeChanged && startBtn && !scanning) {
+    barcodeInput && (barcodeInput.value = '');
+  }
+}
+
 async function handleRawQR(raw) {
   try {
     const res = await apiFetch('/api/scan', {
@@ -180,6 +293,7 @@ async function handleRawQR(raw) {
     const data = await res.json();
     showModalForScan(data, raw);
     loadStats();
+    loadRecentAttendance();
   } catch (e) {
     console.error('Scan error', e);
   }
@@ -249,6 +363,8 @@ function closeModal() {
   // Added: allow immediate re-scan of same QR after closing modal
   lastResult = null;
   lastResultTime = 0;
+  if (barcodeInput) barcodeInput.value = '';
+  focusBarcodeField(true);
 }
 
 function openModal() {
@@ -319,3 +435,59 @@ if (document.readyState === 'loading') {
 
 startBtn && !startBtn._listenerAttached && (startBtn._listenerAttached = startBtn.addEventListener('click', () => { if (!scanning) startScan(); }));
 stopBtn && !stopBtn._listenerAttached && (stopBtn._listenerAttached = stopBtn.addEventListener('click', () => { if (scanning) stopScan(); }));
+function triggerBarcodeScan(force = false) {
+  if (!barcodeInput || activeMode !== 'barcode') return;
+  const value = barcodeInput.value.trim();
+  if (!value) return;
+  if (!force && value.length < BARCODE_TRIGGER_LENGTH) return;
+  if (barcodeTriggerTimer) {
+    clearTimeout(barcodeTriggerTimer);
+    barcodeTriggerTimer = null;
+  }
+  barcodeTriggerTimer = setTimeout(() => {
+    if (activeMode !== 'barcode') return;
+    handleRawQR(value);
+    barcodeInput.value = '';
+    focusBarcodeField(true);
+  }, 25);
+}
+
+barcodeInput && barcodeInput.addEventListener('input', () => {
+  if (!barcodeInput || activeMode !== 'barcode') return;
+  const value = barcodeInput.value.trim();
+  if (value.length < BARCODE_TRIGGER_LENGTH) return;
+  triggerBarcodeScan();
+});
+
+barcodeInput && barcodeInput.addEventListener('keydown', e => {
+  if (activeMode !== 'barcode' || e.key !== 'Enter') return;
+  e.preventDefault();
+  triggerBarcodeScan(true);
+});
+
+barcodeInput && barcodeInput.addEventListener('blur', () => {
+  if (activeMode !== 'barcode') return;
+  setTimeout(() => {
+    if (modal && modal.style.display === 'block') return;
+    focusBarcodeField();
+  }, 75);
+});
+
+barcodeSubmitBtn && barcodeSubmitBtn.addEventListener('click', () => {
+  if (activeMode !== 'barcode') {
+    setScanMode('barcode');
+    return;
+  }
+  triggerBarcodeScan(true);
+});
+
+modeCameraBtn && modeCameraBtn.addEventListener('click', () => setScanMode('camera'));
+modeBarcodeBtn && modeBarcodeBtn.addEventListener('click', () => setScanMode('barcode'));
+
+historyRefreshBtn && historyRefreshBtn.addEventListener('click', async () => {
+  historyRefreshBtn.disabled = true;
+  await loadRecentAttendance();
+  historyRefreshBtn.disabled = false;
+});
+
+setScanMode(activeMode);

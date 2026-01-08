@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <title>GDG On Campus MIT ACSC Check-In</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/styles.css" />
   <!-- <link rel="preconnect" href="https://cdn.jsdelivr.net"> -->
   <!-- Use @zxing/library UMD build for global ZXing -->
@@ -19,16 +22,44 @@
 
   <main>
     <section class="scanner-panel">
-      <div id="video-container">
-        <video id="preview" autoplay muted playsinline></video>
-        <div id="scan-overlay">Align QR within frame</div>
+      <div class="controls mode-toggle">
+        <button id="modeCameraBtn" type="button" class="mode-btn active">Webcam Scanner</button>
+        <button id="modeBarcodeBtn" type="button" class="mode-btn">External Scanner</button>
       </div>
-      <div class="controls">
-        <select id="cameraSelect"></select>
-        <button id="startBtn">Start</button>
-        <button id="stopBtn" disabled>Stop</button>
+
+      <div id="cameraModePanel" class="mode-panel">
+        <div id="video-container">
+          <video id="preview" autoplay muted playsinline></video>
+          <div id="scan-overlay">Align QR within frame</div>
+        </div>
+        <div class="controls">
+          <select id="cameraSelect"></select>
+          <button id="startBtn">Start</button>
+          <button id="stopBtn" disabled>Stop</button>
+        </div>
+        <p class="hint">Point camera at QR. Scan result shows automatically.</p>
       </div>
-      <p class="hint">Point camera at QR. Scan result shows automatically.</p>
+
+      <div id="barcodeModePanel" class="mode-panel hidden">
+        <div class="controls" style="flex-direction:column;align-items:flex-start;gap:0.35rem;margin-top:0.5rem;">
+          <label for="barcodeInput">Barcode Scanner Input</label>
+          <div style="display:flex;gap:0.5rem;width:100%;">
+            <input id="barcodeInput" type="text" autocomplete="off" placeholder="Scan or enter code" />
+            <button id="barcodeSubmitBtn" type="button" class="secondary">Submit</button>
+          </div>
+          <small class="hint">Keep focus here and scan using your external barcode reader.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-panel" aria-live="polite">
+      <div class="history-header">
+        <h2>Checked-In Attendees</h2>
+        <button id="historyRefreshBtn" type="button" class="secondary">Refresh</button>
+      </div>
+      <div id="attendanceList" class="history-list empty">
+        <p>No attendees checked in yet.</p>
+      </div>
     </section>
   </main>
 
