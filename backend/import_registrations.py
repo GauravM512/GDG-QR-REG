@@ -3,7 +3,7 @@ import sqlite3
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-CSV_PATH = BASE_DIR / "data" / "google-gdg-on-campus-mit-arts-commerce-and-science-college-pune-india-presents-build-with-ai-innovyuh-hackathon-2025.csv"
+CSV_PATH = BASE_DIR / "data" / "aiml.csv"
 REG_DB = BASE_DIR / "db" / "registrations.db"
 
 

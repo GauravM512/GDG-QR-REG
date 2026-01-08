@@ -33,11 +33,11 @@ def get_att_conn():
 
 def derive_ticket_number_from_qr(raw: str):
     """
-    Given a QR like 87189:1700489 -> GOOGA251700489
+    Given a QR like 87189:1700489 -> GOOGA261700489
     Logic:
       split on ':'
       take right side (digits)
-      ticket = 'GOOGA25' + right_digits
+      ticket = 'GOOGA26' + right_digits
     """
     if ":" not in raw:
         return None
@@ -45,7 +45,7 @@ def derive_ticket_number_from_qr(raw: str):
     right = right.strip()
     if not right.isdigit():
         return None
-    return f"GOOGA25{right}"
+    return f"GOOGA26{right}"
 
 def lookup_attendee(ticket_number: str):
     conn = get_reg_conn()

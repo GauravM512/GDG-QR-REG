@@ -13,7 +13,7 @@ const manualCheckBtn = document.getElementById('manualCheckBtn');
 const exportBtn = document.getElementById('exportBtn'); // Added
 
 // Add configurable backend base URL (adjust host/port as needed)
-const API_BASE = window.API_BASE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8000' : '');
+const API_BASE = 'http://localhost:8000'; // Change if backend is on different host/port
 function apiFetch(path, opts) { return fetch(`${API_BASE}${path}`, opts); }
 
 // Camera error helper UI (injects a small red message above video)
